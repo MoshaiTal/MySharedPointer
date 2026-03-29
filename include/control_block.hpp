@@ -1,7 +1,5 @@
-#include <iostream>
 #include <functional>
 
-using namespace std;
 
 // Control block for shared pointer:
 // Contains the reference count and the deleter for the managed object.

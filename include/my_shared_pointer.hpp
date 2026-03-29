@@ -1,9 +1,8 @@
-#include <iostream>
 #include <stdexcept>
 #include <utility>
+#include <functional>
 #include "control_block.hpp"
 
-using namespace std;
 
 // MySharedPointer class template definition
 template <typename T>
@@ -29,9 +28,10 @@ class MySharedPointer {
         MySharedPointer() : ptr(nullptr), control_block(nullptr){}
 
         // Constructor that takes a raw pointer and an optional deleter
-        MySharedPointer(T* t) : ptr(t), control_block(nullptr) {
+        MySharedPointer(T* t, std::function<void(T*)> deleter = [](T* p){ delete p; })
+            : ptr(t), control_block(nullptr) {
             if (t != nullptr) {
-                control_block = new ControlBlock<T>([](T* p){ delete p; }); // Create a new control block with default deleter
+                control_block = new ControlBlock<T>(deleter);
             }
         }
 
