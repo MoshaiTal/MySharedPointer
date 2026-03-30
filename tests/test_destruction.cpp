@@ -6,7 +6,6 @@
 
 #include "my_shared_pointer.hpp"
 
-
 // helper struct to track destruction (wraps a file)
 struct FileHolder {
     int fd;     // file descriptor
@@ -52,6 +51,35 @@ TEST(MySharedPointerTest, FileHolderDestruction) {
         }
         // after msp2 goes out of scope, the file should still be open because msp1 is still managing it
         EXPECT_EQ(msp1.use_count(), 1);
+        EXPECT_NE(fcntl(current_fd, F_GETFD), -1);
+    }
+    // make sure the file is closed after msp1 goes out of scope
+    EXPECT_EQ(fcntl(current_fd, F_GETFD), -1); // file should be closed after msp1 goes out of scope
+    EXPECT_EQ(errno, EBADF); // check that the error is EBADF (bad file descriptor)
+
+    // remove the test file
+    std::remove(path.c_str());
+}
+
+// test control_block deleter functionality
+TEST(MySharedPointerTest, CustomDeleter) {
+
+    std::string path = "test_file.txt";
+    int current_fd = -1;
+
+    {
+        // create a MySharedPointer that manages a FileHolder object, which opens a file, and provide a custom deleter that closes the file and deletes the FileHolder object
+        MySharedPointer<FileHolder> msp(new FileHolder(path), [](FileHolder* fh) {
+            if (fh->get_fd() >= 0) {
+                close(fh->get_fd());
+                fh->fd = -1;
+            }
+            delete fh;
+        });
+
+        current_fd = msp->get_fd();
+        EXPECT_NE(msp.get(), nullptr);
+        EXPECT_EQ(msp.use_count(), 1);
         EXPECT_NE(fcntl(current_fd, F_GETFD), -1);
     }
     // make sure the file is closed after msp1 goes out of scope
